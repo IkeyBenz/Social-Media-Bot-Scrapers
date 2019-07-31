@@ -171,4 +171,4 @@ dmypy.json
 
 # Bot Data
 data
-*.credentials
+*.credentials.txt
