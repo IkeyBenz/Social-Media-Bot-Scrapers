@@ -181,9 +181,26 @@ def valid_input(prompt, acceptable_responses):
 
 if __name__ == '__main__':
     print("> Opening Chrome Webdriver...")
-    print("> Instagram requires login credentials to proceed.")
-    username = input("Enter your Instagram username: ")
-    password = input("Enter your Instagram password: ")
+
+    credentials_path = "ig.credentials.txt"
+
+    # Check if credentials are saved
+    if not path.exists(credentials_path):
+        print("> Instagram requires login credentials to proceed.")
+        username = input("Enter your Instagram username: ")
+        password = input("Enter your Instagram password: ")
+
+        # Ask user if they want to store their login info
+        print("Would you like to save these credentials to bypass this step next time?")
+        save_creds = valid_input("Enter y/n: ", ["Y", "y", "N", "n"]) in "yY"
+
+        if save_creds:
+            out = open(credentials_path, "w")
+            out.write(f"{username},{password}")
+            out.close()
+
+    else:  # Use stored credentials
+        username, password = open(credentials_path).read().split(',')
 
     print("> Logging you into instagram.com in Chrome browser...")
     scraper = InstagramScrapper(username, password)
