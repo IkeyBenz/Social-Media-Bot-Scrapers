@@ -4,7 +4,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 
-from os import path, mkdir
+from os import path, makedirs
 from time import sleep
 
 
@@ -77,17 +77,19 @@ class InstagramScrapper(object):
             # Refresh the list of links, to include the new results
             links = list_container.find_elements_by_css_selector('li a')
 
+            # Remove empty links
+            accounts = [l.text for l in links if l.text is not ""]
+
             # If the last link is the same as before, no more results
             keep_scrolling = links[-1] != last_link
 
         print(
-            f"Found {len(links)} accounts that {self.user['username']} is following.")
+            f"Found {len(accounts)} accounts that {self.user['username']} is following.")
         with open(log_filepath, 'w') as out:
             print("Saving results...")
-            following = [link.text for link in links if link.text is not ""]
-            out.write('\n'.join(following))
+            out.write('\n'.join(accounts))
             print("Done.")
-            return following
+            return accounts
 
     def log_followers(self, log_filepath="followers.txt"):
         """
@@ -125,25 +127,37 @@ class InstagramScrapper(object):
             # Refresh the list of links, to include the new results
             links = list_container.find_elements_by_css_selector('li a')
 
+            # Remove empty links
+            accounts = [l.text for l in links if l.text is not ""]
+
             # If the last link is the same as before, no more results
             keep_scrolling = links[-1] != last_link
 
         print(
-            f"Found {len(links)} accounts that follow {self.user['username']}")
+            f"Found {len(accounts)} accounts that follow {self.user['username']}")
         with open(log_filepath, 'w') as out:
             print("Saving results...")
-            following = [link.text for link in links if link.text is not ""]
-            out.write('\n'.join(following))
+            out.write('\n'.join(accounts))
             print("Done.")
-            return following
+            return accounts
 
     def log_connections(self, log_filepath="connections.txt"):
 
-        followers = self.log_followers(
-            f"data/{self.user['username']}/followers.txt")
-        following = self.log_following(
-            f"data/{self.user['username']}/following.txt")
+        # Get followers
+        followers_path = f"data/instagram/{self.user['username']}/followers.txt"
+        if path.exists(followers_path):
+            followers = open(followers_path).read().splitlines()
+        else:
+            followers = self.log_followers(followers_path)
 
+        # Get following
+        following_path = f"data/instagram/{self.user['username']}/following.txt"
+        if path.exists(following_path):
+            following = open(following_path).read().splitlines()
+        else:
+            following = self.log_following(following_path)
+
+        # Get intersection
         connections = [flwr for flwr in followers if flwr in following]
 
         print(
@@ -177,10 +191,9 @@ if __name__ == '__main__':
     print("> What would you like to do?\n\t1) Log usernames that follow me\n\t2) Log usernames I follow\n\t3) Log usernames who I follow and follow me back")
     choice = valid_input("Enter 1/2/3: ", ['1', '2', '3'])
 
-    if not path.isdir("data"):
-        mkdir("data")
-    if not path.isdir("data/instagram"):
-        mkdir("data/instagram")
+    user_data_path = f"data/instagram/{scraper.user['username']}/"
+    if not path.exists(user_data_path):
+        makedirs(user_data_path)
 
     if choice == '1':
         log_path = f"data/instagram/{scraper.user['username']}/followers.txt"
@@ -189,21 +202,21 @@ if __name__ == '__main__':
 
     elif choice == '2':
         log_path = f"data/instagram/{scraper.user['username']}/following.txt"
-        print(f"> Saving followers to {log_path}")
+        print(f"> Saving following to {log_path}")
         scraper.log_following(log_path)
 
     elif choice == '3':
         log_path = f"data/instagram/{scraper.user['username']}/connections.txt"
-        print(f"> Saving followers to {log_path}")
+        print(f"> Saving connections to {log_path}")
         scraper.log_connections(log_path)
 
     # For getting second order network:
-    connections = open(
-        f'data/{scraper.user["username"]}/connections.txt').read().splitlines()
-    for connection in connections:
-        scraper.user["username"] = connection
+    # connections = open(
+    #     f'data/{scraper.user["username"]}/connections.txt').read().splitlines()
+    # for connection in connections:
+    #     scraper.user["username"] = connection
 
-        if not path.isdir(f"data/{connection}"):
-            mkdir(f"data/{connection}")
+    #     if not path.isdir(f"data/{connection}"):
+    #         mkdir(f"data/{connection}")
 
-        scraper.log_connections(f'data/{connection}/connections.txt')
+    #     scraper.log_connections(f'data/{connection}/connections.txt')
