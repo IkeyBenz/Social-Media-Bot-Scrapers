@@ -17,8 +17,6 @@ driver = Chrome()
 username, password = open('ig.credentials.txt').read().split(',')
 user = {'username': username, 'password': password}
 
-# Basic requirement before doing anything is:
-
 
 def open_instagram_and_login():
     """ Opens instagram.com in Chrome and logs you in using given credentials """
@@ -39,8 +37,6 @@ def open_instagram_and_login():
     # Login
     driver.find_element_by_css_selector("button[type=submit]").click()
     sleep(2)
-
-# Trying to get it to handle pagination faster
 
 
 def scroll():
