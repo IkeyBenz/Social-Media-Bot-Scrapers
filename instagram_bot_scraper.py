@@ -3,8 +3,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import StaleElementReferenceException
 
-from os import path, makedirs
+from os import path, makedirs, listdir
 from time import sleep
 
 
@@ -39,13 +40,29 @@ class InstagramScrapper(object):
         self.driver.find_element_by_css_selector("button[type=submit]").click()
         sleep(2)
 
-        return login_route
+    def _scroll_for_elements(self, container, expectation):
+        list_items = container.find_elements_by_tag_name('li')
+        while len(list_items) < expectation:
+            try:
+                self.driver.execute_script(
+                    'arguments[0].scrollIntoView()', list_items[-1])
+            except StaleElementReferenceException:
+                sleep(0.5)
 
-    def log_following(self, log_filepath="following.txt"):
+            list_items = container.find_elements_by_tag_name('li')
+
+        return list_items
+
+    def log_following(self, log_filepath="following.txt", update=False):
         """
             Navigates to /username/following and records the usernames of everyone
             you follow into the log_filepath.
         """
+        if not update and path.exists(log_filepath):
+            print(
+                f"> {self.user['username']}'s following is already recorded. Skipping.")
+            return open(log_filepath).read().splitlines()
+
         # Go to profile page
         desired_url = f"https://www.instagram.com/{self.user['username']}/"
         self.driver.get(desired_url)
@@ -57,45 +74,38 @@ class InstagramScrapper(object):
         anchor_href = f"/{self.user['username']}/following/"
         link = self.driver.find_element_by_css_selector(
             f'a[href="{anchor_href}"]')
+
+        num_following = int(link.find_element_by_tag_name('span').text)
         link.click()
-        sleep(2)
+        sleep(1)
 
         list_container = self.driver.find_element_by_css_selector(
             'div[role="dialog"] div.isgrP ul div.PZuss')
-        sleep(1)  # Wait for content to load
 
-        # Scroll through list to get them all to load
-        keep_scrolling = True
-        while keep_scrolling:
-            # Get all links currenty in list
-            links = list_container.find_elements_by_css_selector('li a')
-            last_link = links[-1]
-            self.driver.execute_script(  # Scroll so the last link gets displayed
-                "arguments[0].scrollIntoView()", last_link)
-
-            sleep(1)  # Wait a second for more results to load
-            # Refresh the list of links, to include the new results
-            links = list_container.find_elements_by_css_selector('li a')
-
-            # Remove empty links
-            accounts = [l.text for l in links if l.text is not ""]
-
-            # If the last link is the same as before, no more results
-            keep_scrolling = links[-1] != last_link
+        list_items = self._scroll_for_elements(list_container, num_following-1)
+        accounts = list(
+            map(lambda li: li.find_elements_by_tag_name('a')[-1].text, list_items))
 
         print(
             f"Found {len(accounts)} accounts that {self.user['username']} is following.")
+
         with open(log_filepath, 'w') as out:
             print("Saving results...")
             out.write('\n'.join(accounts))
             print("Done.")
             return accounts
 
-    def log_followers(self, log_filepath="followers.txt"):
+    def log_followers(self, log_filepath="followers.txt", update=False):
         """
             Navigates to /username/followers and records the usernames of everyone
             that follows you into the log_filepath.
         """
+
+        if not update and path.exists(log_filepath):
+            print(
+                f"> {self.user['username']}'s followers is already recorded. Skipping.")
+            return open(log_filepath).read().splitlines()
+
         # Go to profile page
         desired_url = f"https://www.instagram.com/{self.user['username']}/"
         self.driver.get(desired_url)
@@ -107,6 +117,9 @@ class InstagramScrapper(object):
         anchor_href = f"/{self.user['username']}/followers/"
         link = self.driver.find_element_by_css_selector(
             f'a[href="{anchor_href}"]')
+
+        num_followers = int(link.find_element_by_tag_name('span').text)
+
         link.click()
         sleep(2)
 
@@ -114,24 +127,9 @@ class InstagramScrapper(object):
             'div[role="dialog"] div.isgrP ul div.PZuss')
         sleep(1)  # Wait for content to load
 
-        # Scroll through list to get them all to load
-        keep_scrolling = True
-        while keep_scrolling:
-            # Get all links currenty in list
-            links = list_container.find_elements_by_css_selector('li a')
-            last_link = links[-1]
-            self.driver.execute_script(  # Scroll so the last link gets displayed
-                "arguments[0].scrollIntoView()", last_link)
-
-            sleep(1)  # Wait a second for more results to load
-            # Refresh the list of links, to include the new results
-            links = list_container.find_elements_by_css_selector('li a')
-
-            # Remove empty links
-            accounts = [l.text for l in links if l.text is not ""]
-
-            # If the last link is the same as before, no more results
-            keep_scrolling = links[-1] != last_link
+        list_items = self._scroll_for_elements(list_container, num_followers-1)
+        accounts = list(
+            map(lambda li: li.find_elements_by_tag_name('a')[-1].text, list_items))
 
         print(
             f"Found {len(accounts)} accounts that follow {self.user['username']}")
@@ -179,7 +177,7 @@ def valid_input(prompt, acceptable_responses):
     return valid_input(prompt, acceptable_responses)
 
 
-if __name__ == '__main__':
+def start():
     print("> Opening Chrome Webdriver...")
 
     credentials_path = "ig.credentials.txt"
@@ -205,8 +203,12 @@ if __name__ == '__main__':
     print("> Logging you into instagram.com in Chrome browser...")
     scraper = InstagramScrapper(username, password)
 
-    print("> What would you like to do?\n\t1) Log usernames that follow me\n\t2) Log usernames I follow\n\t3) Log usernames who I follow and follow me back")
-    choice = valid_input("Enter 1/2/3: ", ['1', '2', '3'])
+    show_interface(scraper)
+
+
+def show_interface(scraper):
+    print("> What would you like to do?\n\t1) Log usernames that follow me\n\t2) Log usernames I follow\n\t3) Log usernames who I follow and follow me back\n\t4) Log my 2nd order network")
+    choice = valid_input("Enter 1/2/3/4: ", ['1', '2', '3', '4'])
 
     user_data_path = f"data/instagram/{scraper.user['username']}/"
     if not path.exists(user_data_path):
@@ -227,13 +229,36 @@ if __name__ == '__main__':
         print(f"> Saving connections to {log_path}")
         scraper.log_connections(log_path)
 
-    # For getting second order network:
-    # connections = open(
-    #     f'data/{scraper.user["username"]}/connections.txt').read().splitlines()
-    # for connection in connections:
-    #     scraper.user["username"] = connection
+    elif choice == '4':
+        print("> Getting your connections and their connections")
 
-    #     if not path.isdir(f"data/{connection}"):
-    #         mkdir(f"data/{connection}")
+        # Get all connections of authenticated user
+        connections_path = f'data/instagram/{scraper.user["username"]}/connections.txt'
+        if path.exists(connections_path):
+            connections = open(connections_path).read().splitlines()
+        else:
+            connections = scraper.log_connections(connections_path)
 
-    #     scraper.log_connections(f'data/{connection}/connections.txt')
+        # Get the connections of authenticated user's connections
+        for connection in connections:
+            # Change the username of scraper to be current connection
+            print("> Getting connections of", connection)
+            scraper.user["username"] = connection
+
+            if not path.exists(f"data/instagram/{connection}/"):
+                makedirs(f"data/instagram/{connection}/")
+
+            log_path = f'data/instagram/{scraper.user["username"]}/connections.txt'
+            scraper.log_connections(log_path)
+
+    print("> Would you like to run another task?")
+    choice = valid_input("Enter y/n: ", ['Y', 'y', 'N', 'n'])
+    if choice in 'Yy':
+        return show_interface(scraper)
+
+    print("> Stopping processes...")
+    print("> Done. Bye Bye.")
+
+
+if __name__ == '__main__':
+    start()
