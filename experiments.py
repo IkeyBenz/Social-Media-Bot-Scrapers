@@ -78,6 +78,21 @@ def scroll():
             f"Anchors in item: {len(anchors)}. Text: {', '.join([a.text for a in anchors])}")
 
 
+def detect_duplicates(lst):
+    duplicates = {}
+    items = set()
+    for item in lst:
+        if item in items:
+            if item not in duplicates:
+                duplicates[item] = 0
+            duplicates[item] += 1
+        else:
+            items.add(item)
+    return duplicates
+
+
 if __name__ == '__main__':
-    open_instagram_and_login()
-    scroll()
+    path = 'data/instagram/ikeybenz/followers.txt'
+    accounts = open(path).read().splitlines()
+    for account, appearances in detect_duplicates(accounts).items():
+        print(f"{account}: {appearances}")
