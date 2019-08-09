@@ -3,7 +3,7 @@
     without running the whole bot.
 """
 
-from selenium.webdriver import Chrome
+from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
@@ -13,7 +13,13 @@ from selenium.common.exceptions import StaleElementReferenceException
 from os import path, makedirs
 from time import sleep
 
-driver = Chrome()
+opt = ChromeOptions()
+opt.add_experimental_option('w3c', False)
+driver = Chrome(chrome_options=opt)
+driver.get('https://www.apple.com')
+sleep(2)
+print("and:")
+print(driver.get_log('browser'))
 username, password = open('ig.credentials.txt').read().split(',')
 user = {'username': username, 'password': password}
 
@@ -80,19 +86,8 @@ def scroll():
 
 def detect_duplicates(lst):
     duplicates = {}
-    items = set()
     for item in lst:
-        if item in items:
-            if item not in duplicates:
-                duplicates[item] = 0
-            duplicates[item] += 1
-        else:
-            items.add(item)
+        if item not in duplicates:
+            duplicates[item] = -1
+        duplicates[item] += 1
     return duplicates
-
-
-if __name__ == '__main__':
-    path = 'data/instagram/ikeybenz/followers.txt'
-    accounts = open(path).read().splitlines()
-    for account, appearances in detect_duplicates(accounts).items():
-        print(f"{account}: {appearances}")

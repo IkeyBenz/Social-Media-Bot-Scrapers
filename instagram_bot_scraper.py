@@ -1,9 +1,9 @@
-from selenium.webdriver import Chrome
+from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 
 from os import path, makedirs, listdir
 from time import sleep
@@ -17,7 +17,10 @@ class InstagramScrapper(object):
     """
 
     def __init__(self, username, password):
-        self.driver = Chrome()
+        opts = ChromeOptions()
+        opts.add_experimental_option('w3c', False)
+        self.driver = Chrome(chrome_options=opts)
+
         self.user = {'username': username.lower(), 'password': password}
 
         self.open_instagram_and_login()
@@ -45,7 +48,7 @@ class InstagramScrapper(object):
     def _generate_accounts_from(self, container, expectation):
         def get_account(li):
             return li.find_elements_by_tag_name('a')[-1].text
-
+        # loading icon = container.find_element_by_css_selector('div.W1Bne.ztp9m')
         count = 0
         while count < expectation:
             try:
@@ -55,39 +58,54 @@ class InstagramScrapper(object):
                     'arguments[0].scrollIntoView()', list_items[-1])
 
                 for account in map(get_account, list_items):
+                    count += 1
                     yield account
+                    if count >= expectation:
+                        break
 
-                count += len(list_items)
-            except:
                 sleep(0.1)
+            except:
+                sleep(0.2)
 
-    def _log(self, account_type: str, log_filepath: str, update=False) -> [str]:
-        if not update and path.exists(log_filepath):
-            print(
-                f"{self.user['username']}'s {account_type} have been previously downloaded.")
-            choice = valid_input(
-                "Would you like to update them? (y/n) ", ["y", "n", "Y", "N"])
-            if choice in "Nn":
-                return open(log_filepath).read().splitlines()
-
+    def _log(self, account_type: str, log_filepath: str, update=False, mutuals_only=False) -> [str]:
         # Go to profile page
         desired_url = f"https://www.instagram.com/{self.user['username']}/"
         self.driver.get(desired_url)
 
-        wait = WebDriverWait(self.driver, 10)
+        wait = WebDriverWait(self.driver, 5)
         wait.until(lambda driver: driver.current_url == desired_url)
 
-        # Click anchor with href="/username/{following | followers}/"
         anchor_href = f"/{self.user['username']}/{account_type}/"
-        link = self.driver.find_element_by_css_selector(
-            f'a[href="{anchor_href}"]')
+        if mutuals_only:
+            anchor_href += "mutualOnly"
 
-        num_following = int(link.find_element_by_tag_name('span').text)
-        link.click()
-        sleep(1)
+        cancel = False  # Need this flag because the 'finally' runs after return
+        try:
+            locator = (By.CSS_SELECTOR, f'a[href="{anchor_href}"]')
+            link = wait.until(EC.presence_of_element_located(locator))
+            link_text = link.find_element_by_tag_name('span').text
+            num_following = link_text.split(
+                ' ')[-2] if mutuals_only else link_text
+            num_following = int(num_following.replace(',', ''))
 
-        list_container = self.driver.find_element_by_css_selector(
-            'div[role="dialog"] div.isgrP ul div.PZuss')
+        except ValueError:  # We will assume this user has 1-3 mutual followers
+            spans = link.find_elements_by_css_selector('span span')
+            num_following = len(spans)
+        except TimeoutException:  # We will assume this user has no mutual
+            cancel = True  # followers and we will skip to the next one
+        finally:
+            if cancel:
+                return print(f"> ! {self.user['username']} has no mutual followers")
+            link.click()
+
+        if mutuals_only:
+            btn = (By.CSS_SELECTOR,
+                   f"a[href='/{self.user['username']}/followers/mutualFirst']")
+            wait.until(EC.presence_of_element_located(btn)).click()
+
+        selector = 'div[role="dialog"] div.isgrP ul div.PZuss'
+        list_container = wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
 
         accounts_gen = self._generate_accounts_from(
             list_container, num_following-1)
@@ -135,3 +153,14 @@ class InstagramScrapper(object):
             print("Done.")
 
         return connections
+
+    def log_mutuals_with(self, username):
+        log_path = f"data/instagram/{self.user['username']}/"
+        if not path.exists(log_path):
+            makedirs(log_path)
+        log_path += f"mutuals_with_{username}.txt"
+        if not path.exists(log_path):
+            self._log("followers", log_path, mutuals_only=True)
+            print("> Saved", log_path)
+        else:
+            print("> Skipping", self.user['username'])

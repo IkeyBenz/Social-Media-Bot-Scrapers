@@ -33,7 +33,7 @@ def start():
 
 
 def show_interface(scraper):
-    print("> What would you like to do?\n\t1) Log usernames that follow me\n\t2) Log usernames I follow\n\t3) Log usernames who I follow and follow me back\n\t4) Log my 2nd order network")
+    print("> What would you like to do?\n\t1) Log usernames that follow me\n\t2) Log usernames I follow\n\t3) Log usernames who I follow and follow me back\n\t4) Get mutual friend links between my connections")
     choice = valid_input("Enter 1/2/3/4: ", ['1', '2', '3', '4'])
 
     user_data_path = f"data/instagram/{scraper.user['username']}/"
@@ -56,26 +56,18 @@ def show_interface(scraper):
         scraper.log_connections(log_path)
 
     elif choice == '4':
-        print("> Getting your connections and their connections")
+        print("> Getting your connections and their relationships")
+        connections_path = f"data/instagram/{scraper.user['username']}/connections.txt"
 
-        # Get all connections of authenticated user
-        connections_path = f'data/instagram/{scraper.user["username"]}/connections.txt'
-        if path.exists(connections_path):
-            connections = open(connections_path).read().splitlines()
-        else:
-            connections = scraper.log_connections(connections_path)
-
-        # Get the connections of authenticated user's connections
-        for connection in connections:
-            # Change the username of scraper to be current connection
-            print("> Getting connections of", connection)
-            scraper.user["username"] = connection
-
-            if not path.exists(f"data/instagram/{connection}/"):
-                makedirs(f"data/instagram/{connection}/")
-
-            log_path = f'data/instagram/{scraper.user["username"]}/connections.txt'
-            scraper.log_connections(log_path)
+        connections = (
+            open(connections_path).read().splitlines()
+            if path.exists(connections_path) else
+            scraper.log_connections(connections_path)
+        )
+        og_user = scraper.user['username']
+        for account in connections:
+            scraper.user['username'] = account
+            scraper.log_mutuals_with(og_user)
 
     print("> Would you like to run another task?")
     choice = valid_input("Enter y/n: ", ['Y', 'y', 'N', 'n'])
