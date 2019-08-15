@@ -7,3 +7,7 @@ ___
 3) `cd` into this repo
 4) Run `python3 cli.py`
 5) Follow the CLI instructions
+
+
+## Inspiration:
+Read about this project on [Medium](https://medium.com/@ikey.benzaken/building-a-graph-of-my-instagram-network-using-python-df17f9b58437).

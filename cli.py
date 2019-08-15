@@ -58,12 +58,9 @@ def show_interface(scraper):
     elif choice == '4':
         print("> Getting your connections and their relationships")
         connections_path = f"data/instagram/{scraper.user['username']}/connections.txt"
-
-        connections = (
-            open(connections_path).read().splitlines()
-            if path.exists(connections_path) else
-            scraper.log_connections(connections_path)
-        )
+        connections = (open(connections_path).read().splitlines()
+                       if path.exists(connections_path) else
+                       scraper.log_connections(connections_path))
         og_user = scraper.user['username']
         for account in connections:
             scraper.user['username'] = account
