@@ -1,9 +1,9 @@
 from os import listdir
 from collections import Counter
 from networkx.classes import Graph
+from networkx.algorithms import community
 import networkx as nx
 from clustering import HCS
-from networkx import drawing
 
 
 DATA_PATH = '../data/instagram'
@@ -35,20 +35,43 @@ def make_graph():
     return g
 
 
-def order_influencers(g: Graph):
+def order_influencers(g: Graph, n=5):
+    '''
+        Takes a networkx graph object and returns the n most connected vertices.
+        In a social network, these would be the most influential accounts.
+    '''
     influencers = {}
     for account in g.get_vertices():
         influencers[account] = len(g.get_vertex(account).get_neighbors())
 
     influencers = Counter(influencers)
-    print(influencers.most_common(5))
+    return influencers.most_common(n)
+
+
+def get_connections_between(g: Graph, acc1: str, acc2: str):
+    '''
+      Takes a networkx graph object and two accounts. Returns the accounts in the
+      smallest path between them.
+    '''
+    return nx.shortest_path(g, acc1, acc2)
+
+
+def display_communities(g: Graph):
+    '''
+        Prints approzimations to stdout for 'communities' amongst the accounts
+        in the input graph. 
+    '''
+    communities = community.girvan_newmnan(g)
+    for community in communities:
+        print("NEW COMMUNITY:")
+        for group in community:
+            print("\tNEW GROUP:")
+            for member in group:
+                print('\t\t' + member)
 
 
 if __name__ == '__main__':
-    print('Making graph...')
     g = make_graph()
-    print('GRAPH MADE')
-    # g = HCS(g)
-    print('Waiting for graph to draw maybe>??')
-    drawing.draw_networkx(g, show_labels=True)
-    print("Graph has supposedly been built")
+    # print(order_influencers(g))
+    # print(get_connections_between(g, 'your friend', 'your other friend'))
+    # display_communities(g)
