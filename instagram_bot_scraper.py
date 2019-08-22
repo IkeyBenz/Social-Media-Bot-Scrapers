@@ -26,7 +26,9 @@ class InstagramScrapper(object):
         self.open_instagram_and_login()
 
     def open_instagram_and_login(self):
-        """ Opens instagram.com in Chrome and logs you in using given credentials """
+        """
+            Opens instagram.com in Chrome and logs you in using given credentials.
+        """
 
         login_route = "https://www.instagram.com/accounts/login/?source=auth_switcher"
 
@@ -46,9 +48,17 @@ class InstagramScrapper(object):
         sleep(2)
 
     def _generate_accounts_from(self, container, expectation):
+        """
+            A generator that yields account usernames for every new scroll down
+            the "followers/following" list container on instagram. This is allows
+            us to operate on the new results (extract their usernames from the html) 
+            while new results are loading. Alternatively we would have had to wait
+            for all the results to load, and then process the html for accounts - 
+            which was way more inefficient.
+        """
         def get_account(li):
             return li.find_elements_by_tag_name('a')[-1].text
-        # loading icon = container.find_element_by_css_selector('div.W1Bne.ztp9m')
+
         count = 0
         while count < expectation:
             try:
@@ -68,6 +78,9 @@ class InstagramScrapper(object):
                 sleep(0.2)
 
     def _log(self, account_type: str, log_filepath: str, update=False, mutuals_only=False) -> [str]:
+        """
+            An internal method that does the heavy lifting when logging information.
+        """
         # Go to profile page
         desired_url = f"https://www.instagram.com/{self.user['username']}/"
         self.driver.get(desired_url)
@@ -143,7 +156,10 @@ class InstagramScrapper(object):
             return self._log("followers", log_filepath, update)
 
     def log_connections(self, log_filepath="connections.txt"):
-
+        """ 
+            Logs the people following you, the people you follow, and the intersection
+            of the two.
+        """
         # Get followers
         followers_path = f"data/instagram/{self.user['username']}/followers.txt"
         followers = self.log_followers(followers_path)
@@ -165,6 +181,9 @@ class InstagramScrapper(object):
         return connections
 
     def log_mutuals_with(self, username):
+        """
+            Logs your connections, then all of the mutual relationships between them.
+        """
         log_path = f"data/instagram/{self.user['username']}/"
         if not path.exists(log_path):
             makedirs(log_path)
