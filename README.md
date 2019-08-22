@@ -3,10 +3,10 @@
 ___
 ## Usage:
 1) Clone this repo
-2) Follow [these instructions](https://selenium-python.readthedocs.io/installation.html) to install selenium. Make sure the executable is in your global PATH!
-3) `cd` into this repo
-4) Run `python3 cli.py`
-5) Follow the CLI instructions
+2) `cd` into this repo
+3) Run `source venv/bin/activate` to activate the virtual environment
+4) Run `python3 cli.py` to run the cli script.
+5) Follow the instructions in the cli.
 
 
 ## Inspiration:
