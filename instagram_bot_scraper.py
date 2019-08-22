@@ -123,14 +123,24 @@ class InstagramScrapper(object):
             Navigates to /username/following and records the usernames of everyone
             you follow into the log_filepath.
         """
-        return self._log("following", log_filepath, update)
+        try:
+            return self._log("following", log_filepath, update)
+        except TimeoutException:
+            self.driver.refresh()
+            sleep(2)
+            return self._log("following", log_filepath, update)
 
     def log_followers(self, log_filepath="followers.txt", update=False):
         """
             Navigates to /username/followers and records the usernames of everyone
             that follows you into the log_filepath.
         """
-        return self._log("followers", log_filepath, update)
+        try:
+            return self._log("followers", log_filepath, update)
+        except TimeoutException:
+            self.driver.refresh()
+            sleep(2)
+            return self._log("followers", log_filepath, update)
 
     def log_connections(self, log_filepath="connections.txt"):
 
@@ -160,7 +170,14 @@ class InstagramScrapper(object):
             makedirs(log_path)
         log_path += f"mutuals_with_{username}.txt"
         if not path.exists(log_path):
-            self._log("followers", log_path, mutuals_only=True)
-            print("> Saved", log_path)
+            try:
+                self._log("followers", log_path, mutuals_only=True)
+                print("> Saved", log_path)
+            except TimeoutException:
+                print("Stuff didn't load in time. Refreshing and trying again.")
+                self.driver.refresh()
+                sleep(2)
+                return self.log_mutuals_with(username)
+
         else:
             print("> Skipping", self.user['username'])

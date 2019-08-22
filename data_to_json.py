@@ -8,8 +8,9 @@ in this file, with your instagram username.
 """
 import json
 from os import listdir, path
+from clean_data import correct_mutual_follwers
 
-data_dir = "../SocialMediaScrappers/GitRepo/data/instagram"
+data_dir = "data/instagram"
 ikeys_connections = set(open(
     data_dir + '/ikeybenz/connections.txt').read().splitlines())
 
@@ -28,12 +29,14 @@ def get_links():
 
 
 if __name__ == '__main__':
+    correct_mutual_follwers()
+
     data = {
         "nodes": [
             {"id": acc, "group": 1}
             for acc in ikeys_connections
         ] + [{"id": "ikeybenz", "group": 1}],
-        "links": get_links()[:18000]
+        "links": get_links()
     }
 
     with open('data.json', 'w') as out:
