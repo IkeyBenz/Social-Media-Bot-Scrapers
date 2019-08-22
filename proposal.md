@@ -8,5 +8,5 @@ With this project I intend to accomplish 3 things:
 
 ## Results
 1) The selenium bot's source code can be found in the [instagram_bot_scraper.py](https://github.com/IkeyBenz/Social-Media-Bot-Scrapers/blob/master/instagram_bot_scraper.py) file.
-2) The D3.js source coude can be found in the [index.html]() file. It requires a `data.json` file which can be generated using the [data_to_json.py](https://github.com/IkeyBenz/Social-Media-Bot-Scrapers/blob/master/data_to_json.py) script.
+2) The D3.js source coude can be found in the [index.html](https://github.com/IkeyBenz/Social-Media-Bot-Scrapers/blob/master/index.html) file. It requires a `data.json` file which can be generated using the [data_to_json.py](https://github.com/IkeyBenz/Social-Media-Bot-Scrapers/blob/master/data_to_json.py) script.
 3) The algorithms applied on this graph are written in the [Graph/analysis.py](https://github.com/IkeyBenz/Social-Media-Bot-Scrapers/blob/master/Graph/analysis.py) file.
