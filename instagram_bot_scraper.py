@@ -5,7 +5,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 
-from os import path, makedirs, listdir
+from os import path, makedirs, listdir, getcwd
 from time import sleep
 
 from util import valid_input
@@ -19,7 +19,8 @@ class InstagramScrapper(object):
     def __init__(self, username, password):
         opts = ChromeOptions()
         opts.add_experimental_option('w3c', False)
-        self.driver = Chrome(chrome_options=opts)
+        self.driver = Chrome(
+            chrome_options=opts, executable_path=path.join(getcwd(), 'chromedriver'))
 
         self.user = {'username': username.lower(), 'password': password}
 
@@ -35,7 +36,7 @@ class InstagramScrapper(object):
         # Open Instragram
         self.driver.get(login_route)
         wait = WebDriverWait(self.driver, 10)
-        wait.until(lambda driver: driver.current_url == login_route)
+        wait.until(EC.presence_of_element_located((By.NAME, 'username')))
 
         # Input Login Credentials
         username_input = self.driver.find_element_by_name("username")
